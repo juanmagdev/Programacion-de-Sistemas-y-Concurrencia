@@ -22,11 +22,18 @@ public class Mesa {
 	 * 
 	 */
 	public synchronized void nuevaRacion(int id) throws InterruptedException {
+
 		while (nPorcionesDisponibles == 0)
 			wait();
+		
+		if (nPorcionesDisponibles ==8) {
+			System.out.println("		El estudiante " + id + " ha pedido una pizza");
+			
+		}
 		nPorcionesDisponibles--;
 		System.out.println("El estudiante " + id + " ha cogido una porcion. Hay " + nPorcionesDisponibles + " porciones disponibles");
-		notify();
+
+		notifyAll();
 	}
 
 	/**
