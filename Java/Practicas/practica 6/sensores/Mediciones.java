@@ -1,70 +1,64 @@
+// version 1
 package sensores;
 
 import java.util.concurrent.Semaphore;
 
 public class Mediciones {
-	Semaphore semaforos[];
-	Semaphore mutex = new Semaphore(1, true);
-	Semaphore trabajador = new Semaphore(0, true);
-	int n = 0;	//numero de mediciones hechas
 
-	public Mediciones() {
-		this.semaforos = new Semaphore[3];
-		for (int i = 0; i < semaforos.length; i++) {
-			semaforos[i] = new Semaphore(1, true);
-		}
-	}
+    private int numMediciones=0;
+    private Semaphore mutex=new Semaphore(1);
+    private Semaphore esperoPorSensores=new Semaphore(0);//
+    private Semaphore esperoPorTrabajador=new Semaphore(0);
 
-	/**
-	 * El sensor id deja su mediciÃ³n y espera hasta que el trabajador
-	 * ha terminado sus tareas
-	 * 
-	 * @param id
-	 * @throws InterruptedException
-	 */
-	public void nuevaMedicion(int id) throws InterruptedException {
+    public Mediciones() {
 
-		semaforos[id].release();
-		mutex.acquire();
-		n++;
-		if (n == 3)
-			trabajador.release();
-		mutex.release();
+    }
 
-		semaforos[id].acquire();
+    /**
+     * El sensor id deja su mediciÃƒÂ³n y espera hasta que el trabajador
+     * ha terminado sus tareas
+     *
+     * @param id
+     * @throws InterruptedException
+     */
+    public void nuevaMedicion(int id) throws InterruptedException {
 
-		System.out.println("Sensor " + id + " deja sus mediciones.");
+        mutex.acquire();
+        System.out.println("Sensor " + id + " deja sus mediciones.");
+        numMediciones++;
 
-	}
+        if(numMediciones==3) {
+            esperoPorSensores.release();
+        }
 
-	/***
-	 * El trabajador espera hasta que estÃ¡n las tres mediciones
-	 * 
-	 * @throws InterruptedException
-	 */
-	public void leerMediciones() throws InterruptedException {
+        mutex.release();
+        esperoPorTrabajador.acquire();
+        mutex.acquire();
+        numMediciones--;
+        if(numMediciones!=0)esperoPorTrabajador.release();
+        mutex.release();
 
-		trabajador.acquire();
 
-		System.out.println("El trabajador tiene sus mediciones...y empieza sus tareas");
+    }
 
-	}
+    /***
+     * El trabajador espera hasta que estÃƒÂ¡n las tres mediciones
+     *
+     * @throws InterruptedException
+     */
+    public void leerMediciones() throws InterruptedException {
+        esperoPorSensores.acquire();
+        System.out.println("El trabajador tiene sus mediciones...y empieza sus tareas");
 
-	/**
-	 * El trabajador indica que ha terminado sus tareas
-	 * 
-	 * @throws InterruptedException
-	 */
-	public void finTareas() throws InterruptedException {
-		System.out.println("El trabajador ha terminado sus tareas");
+    }
 
-		mutex.acquire();
-		n = 0;
-		mutex.release();
-		for (int i = 0; i < 3; i++) {
-			semaforos[i].release();
-		}
+    /**
+     * El trabajador indica que ha terminado sus tareas
+     */
+    public void finTareas() {
+        System.out.println("El trabajador ha terminado sus tareas");
+        esperoPorTrabajador.release();
 
-	}
+    }
 
 }

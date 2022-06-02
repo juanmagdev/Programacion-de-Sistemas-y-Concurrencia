@@ -2,7 +2,14 @@ package aseos;
 
 import java.util.concurrent.Semaphore;
 
+//Version injusta. Se podria hacer justa. 
+
 public class Aseos {
+
+	private Semaphore equipoLimpiezaTrabajando = new Semaphore(0, true);
+	private Semaphore puedoEntrar = new Semaphore(1, true);
+	private Semaphore mutex = new Semaphore(1, true);
+	private int n = 0;	//inicialmente hay 0 clientes
 
 	/**
 	 * Utilizado por el cliente id cuando quiere entrar en los aseos
@@ -17,8 +24,15 @@ public class Aseos {
 	 */
 	public void entroAseo(int id) throws InterruptedException {
 
+		puedoEntrar.acquire();
+		mutex.acquire();
+
+		n++;
 		System.out.println("El cliente " + id + " ha entrado en el baño."
-				+ "Clientes en el aseo: ");
+				+ "Clientes en el aseo: " + n);
+		
+		mutex.release();
+		puedoEntrar.release();
 
 	}
 
@@ -30,8 +44,15 @@ public class Aseos {
 	 */
 	public void salgoAseo(int id) throws InterruptedException {
 
+		mutex.acquire();
+		n--;
+
 		System.out.println("El cliente " + id + " ha salido del baño."
-				+ "Clientes en el aseo");
+				+ "Clientes en el aseo: " + n);
+
+		if (n==0) equipoLimpiezaTrabajando.release();	//si hay 0 personas, le damos permiso al equipo de limpieza para que pueda trabajar
+		
+		mutex.release();
 
 	}
 
@@ -45,7 +66,13 @@ public class Aseos {
 	 * 
 	 */
 	public void entraEquipoLimpieza() throws InterruptedException {
+
+		equipoLimpiezaTrabajando.acquire();
+
 		System.out.println("El equipo de limpieza está trabajando.");
+
+		puedoEntrar.acquire();	//quitamos permisos para que no entren clientes
+
 	}
 
 	/**
@@ -57,6 +84,10 @@ public class Aseos {
 	 */
 	public void saleEquipoLimpieza() throws InterruptedException {
 		System.out.println("El equipo de limpieza ha terminado.");
+
+		puedoEntrar.release();
+		equipoLimpiezaTrabajando.release();
+		
 
 	}
 }

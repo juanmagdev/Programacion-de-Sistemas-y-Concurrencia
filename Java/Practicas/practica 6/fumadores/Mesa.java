@@ -4,13 +4,14 @@ import java.util.concurrent.Semaphore;
 
 public class Mesa {
 
+	//implementacion pasiva de fumadores
+
 	private Semaphore[] fumadoresEsperan = new Semaphore[3];
 	private Semaphore agenteEspera = new Semaphore(1, true);
 
 	public Mesa() {
 		for (int i = 0; i < fumadoresEsperan.length; i++) {
 			fumadoresEsperan[i] = new Semaphore(0, true);
-
 		}
 	}
 

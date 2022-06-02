@@ -28,8 +28,10 @@ public class Barca {
 			System.out.println("	Todos los pasajeros se han bajado");
 			puedeSubir =true;
 		}
+
+		int cop = orilla;
 		notifyAll();
-		return orilla;
+		return cop;
 
 	}
 	/*

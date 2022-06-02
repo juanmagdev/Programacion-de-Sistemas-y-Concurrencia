@@ -3,77 +3,94 @@ package barcaSemaforos;
 import java.util.concurrent.Semaphore;
 
 public class Barca {
-	
-	private int pasajeros = 0; //numero de pasajeros actuales en la barca
-	private int orilla =0; //orilla sur -> 0 orilla norte -> 1 cambio orilla -> orilla = (orilla +1)%2
+	int pos_barca = 1;
+	boolean viajando = false;
+	int gente = 0;
+	boolean lleno = false;
+	int para_bajar = 0;
+	int preparados_en_la_otra_orilla = 0;
 
-	private Semaphore sPasajeros = new Semaphore(1, true); //al principio pueden entrar pasajeros
-	private Semaphore MUTEX = new Semaphore(1, true);
-	private Semaphore subenTodos = new Semaphore(0, true); //al principio no han subido todos
-	private Semaphore finViaje = new Semaphore(0, true);   //al principio el viaje no ha terminado	
-	private Semaphore puedeBajar = new Semaphore(0, true);	
-	//private Semaphore puedeSubir = new Semaphore(1, true);
-	//private Semaphore sOrilla = new Semaphore(1, true);
+	Semaphore mutex = new Semaphore(1, true);
+	Semaphore bajar = new Semaphore(0, true);
+	Semaphore viajar = new Semaphore(0, true);
 
-	/*
-	 * El Pasajero id quiere darse una vuelta en la barca desde la orilla pos
-	 */
-	public  void subir(int id,int pos) throws InterruptedException{
+	Semaphore en_orilla_1 = new Semaphore(0, true);
+	Semaphore en_orilla_0 = new Semaphore(0, true);	
 
-		sPasajeros.acquire(); //si no tiene permisos se duerme
-		MUTEX.acquire();	  //seccion critica
-		pasajeros++;
-		System.out.println("El pasajero " + id + " ha subido en la orilla " + pos + ". 		" + pasajeros + " actuales");
-
-		if(pasajeros < 3){	//si ya hay 3 pasajeros no damos permiso
-			sPasajeros.release(); 
+	public void subir(int id, int pos) throws InterruptedException {
+		mutex.acquire();
+		System.out.println("Pide sitio " + id + " en el lado " + pos);
+		while (((pos == 0) && (pos_barca == 1)) || ((pos == 0) && (pos_barca == 0) && (gente == 3))) {
+			mutex.release();
+			en_orilla_0.acquire();
+			mutex.acquire();
 		}
-		if(pasajeros ==3){
-			subenTodos.release();
+		while ((pos == 1) && (pos_barca == 0) && (gente == 3) || ((pos == 1) && (pos_barca == 1) && (gente == 3))) {
+			mutex.release();
+			en_orilla_1.acquire();
+			mutex.acquire();
 		}
 
+		gente++;
+		System.out.println("Se ha subido el numero " + id + " en la orilla " + pos_barca);
+		if (gente != 3) {
+			mutex.release();
+		} else {
+			para_bajar = 3;
+			mutex.release();
+			viajar.release();
+		}
 
-		MUTEX.release();
 	}
-	
+
 	/*
 	 * Cuando el viaje ha terminado, el Pasajero que esta en la barca se baja
 	 */
-	public  int bajar(int id) throws InterruptedException{
-		puedeBajar.acquire();
-		MUTEX.acquire();
-		pasajeros--;
-		System.out.println("	El pasajero " + id + " ha bajado en la otra orilla. 		" + pasajeros + " actuales");
-		if (pasajeros ==0){
-			System.out.println("\n	Todos los pasajeros se han bajado \n");
-			sPasajeros.release();
+	public int bajar(int id) throws InterruptedException {
+		bajar.acquire();
+		mutex.acquire();
+		para_bajar--;
+		System.out.println("Se ha bajado el numero " + id + " en la orilla " + pos_barca);
+		if (para_bajar == 0) {
+			gente = 0;
+			for (int i = 0; i < 3; i++) {
+				if (pos_barca == 0) {
+					en_orilla_0.release();
+				} else {
+					en_orilla_1.release();
+				}
+			}
+
+
+		}else{
+			bajar.release();
 		}
-		MUTEX.release();
-		puedeBajar.release();
-		
-		return orilla;
+
+
+		mutex.release();
+		return pos_barca;
+
 	}
+
 	/*
 	 * El Capitan espera hasta que se suben 3 pasajeros para comenzar el viaje
 	 */
-	public  void esperoSuban() throws InterruptedException{
-		subenTodos.acquire(); //si no tiene permiso se duerme
-		MUTEX.acquire();
-		System.out.println("\n Todos los pasajeros han subido a la barca");
-		System.out.println("El viaje ha comenzado");
-		finViaje.release();
-		MUTEX.release();
-	}
-	/*
-	 * El Capitan indica a los pasajeros que el viaje ha terminado y tienen que bajarse
-	 */
-	public  void finViaje() throws InterruptedException{
-		finViaje.acquire();
-		MUTEX.acquire();
-		orilla = (orilla +1)%2;
-		System.out.println("\n			El viaje ha terminado. Los pasajeros estan en la orilla " + orilla);
-		puedeBajar.release();
-		MUTEX.release();
+	public void esperoSuban() throws InterruptedException {
+		viajar.acquire();
+		System.out.println("Nos vamos de viaje desde la orilla " + pos_barca);
+
 	}
 
+	/*
+	 * El Capitan indica a los pasajeros que el viaje ha terminado y tienen que
+	 * bajarse
+	 */
+	public void finViaje() throws InterruptedException {
+		mutex.acquire();
+		pos_barca = (pos_barca + 1) % 2;
+		System.out.println("Hemos llegado a la orilla " + pos_barca);
+		bajar.release();
+		mutex.release();
+		
+	}
 }

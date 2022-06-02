@@ -5,7 +5,9 @@ import java.util.List;
 
 public class Control {
 	private int NUM;// numero total de recursos
-	private int numRec;
+	private int numRec;	//numero recursos disponibes
+
+	private List lista = new LinkedList<Integer>();
 
 	public Control(int num) {
 		this.NUM = num;
@@ -16,13 +18,26 @@ public class Control {
 
 		System.out.println("Proceso " + id + " pide " + num + " recursos. Quedan: " + numRec);
 
+		lista.add(id);	//anyado id a la lista
+
+		while(numRec < num || lista.indexOf(id) != 0) wait();	//no podemos coger recursos
+
+		numRec-= num;
+
 		System.out.println("El proceso " + id + " ha cogido " + num + " recursos. Quedan: " + numRec);
+
+		notifyAll();
 
 	}
 
 	public synchronized void libRecursos(int id, int num) {
 
+		numRec+=num;
+
 		System.out.println("El proceso " + id + " ha liberado " + num + " recursos. Recursos totales: " + numRec);
+		lista.remove(0);
+	
+		notifyAll();
 
 	}
 }
